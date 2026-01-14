@@ -263,19 +263,21 @@ The landscape of video-to-slides conversion tools ranges from manual screenshot 
 
 ---
 
-### Critical Known Issues
+### YouTube Video Support
 
-**Current Blockers (Transparency First):**
+**✅ Native YouTube URL Support**
+- Gemini API supports YouTube URLs directly via `fileData` structure
+- No need to download videos or extract frames manually
+- Uses official Google AI API format for video analysis
+- Supports public YouTube videos (not private/unlisted)
 
-⚠️ **Gemini API Cannot Access YouTube URLs Directly**
-- The Gemini API does not fetch external video content from URLs
-- Current implementation will fail at the analysis stage
-- **Required Fix**: Download video → Extract frames → Send frames to Gemini
-- **Status**: Documented in [Known Issues](#known-issues), workaround planned
+**Quotas & Limits:**
+- Free tier: Maximum 8 hours of YouTube video analysis per day
+- Paid tier: No length-based limits
+- Gemini 2.5+: Up to 10 videos per request
+- Earlier models: 1 video per request
 
-**This means**: The application is not fully functional out-of-the-box until this architectural change is implemented.
-
-**Why we're honest about this**: Open source means transparent development. You can contribute the fix or wait for updates. Commercial competitors don't disclose limitations until after purchase.
+**Implementation:** Uses the official `fileData.fileUri` format as documented in [Gemini API Video Understanding](https://ai.google.dev/gemini-api/docs/video-understanding)
 
 ---
 
@@ -1224,71 +1226,49 @@ See [Future Enhancements](#future-enhancements) section
 
 ## Known Issues
 
-### Issue #1: Gemini Cannot Analyze YouTube URLs
+### Issue #1: YouTube URL Support (RESOLVED ✅)
 
-**Severity:** CRITICAL
-**Status:** Open
-**Affects:** Core functionality
+**Severity:** ~~CRITICAL~~ → RESOLVED
+**Status:** Fixed
+**Resolution Date:** 2026-01-14
 
-**Description:**
+**Original Issue:**
 
-The Gemini 2.5 Flash API cannot directly access and analyze YouTube video URLs. When passed a YouTube URL in the prompt, Gemini responds:
+Initial implementation incorrectly passed YouTube URLs as text in prompts, which Gemini cannot process.
 
-```
-"I cannot directly access external websites or analyze video content from a URL"
-```
+**Solution Implemented:**
 
-**Reproduction Steps:**
+Updated to use official Gemini API `fileData` structure for YouTube videos:
 
-1. Submit any YouTube URL through the web interface
-2. Job starts processing
-3. Gemini API call fails with above message
-4. Job status shows: `failed`
-
-**Root Cause:**
-
-Gemini's content generation API does not support fetching external URLs. Videos must be either:
-- Uploaded via Gemini File API
-- Processed locally and sent as frames/images
-
-**Workarounds:**
-
-**Option A: Frame-by-Frame Analysis (Recommended)**
 ```javascript
-// 1. Download video with ytdl-core
-// 2. Extract frames every 3 seconds with ffmpeg
-// 3. Send frames to Gemini for classification
-// 4. Identify which frames contain slides
-// 5. Extract those specific frames for PowerPoint
+const contents = [
+  {
+    fileData: {
+      fileUri: "https://www.youtube.com/watch?v=...",
+    },
+  },
+  {
+    text: "Analysis prompt here",
+  },
+];
+
+const result = await model.generateContent(contents);
 ```
 
-**Option B: File Upload API**
-```javascript
-// 1. Download video
-// 2. Upload to Gemini File API
-// 3. Reference uploaded file in analysis request
-// 4. Process results
-```
+**Verification:**
 
-**Option C: Different AI Service**
-- Use OpenAI GPT-4 Vision with video support
-- Use Anthropic Claude with uploaded videos
-- Use specialized slide detection model
+- ✅ Gemini API officially supports YouTube URLs via `fileData.fileUri`
+- ✅ Documented in [official Gemini video understanding docs](https://ai.google.dev/gemini-api/docs/video-understanding)
+- ✅ Supports public YouTube videos (8hr/day free tier limit)
+- ✅ No need to download videos or extract frames manually
 
-**Implementation Plan:**
-
-Implement Option A (frame-by-frame) because:
-- ✅ More control over sampling rate
-- ✅ Better for slide detection (stills vs video)
-- ✅ Lower API costs (only send relevant frames)
-- ✅ Works with existing ffmpeg integration
-
-**Estimated Effort:** 2-3 hours
+**Limitations:**
+- Only public videos (not private/unlisted)
+- Free tier: 8 hours of video per day
+- Gemini 2.5+: Up to 10 videos per request
 
 **Related Files:**
-- `backend/src/services/gemini.js` - Needs rewrite
-- `backend/src/services/videoProcessor.js` - Add frame sampling
-- `backend/src/services/worker.js` - Update pipeline
+- `backend/src/services/gemini.js` - Updated to use fileData structure
 
 ---
 

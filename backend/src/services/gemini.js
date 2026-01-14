@@ -40,13 +40,19 @@ Important:
     console.log('Sending request to Gemini...');
     console.log('YouTube URL:', youtubeUrl);
 
-    // For now, just pass URL in the prompt text
-    // TODO: Implement proper video file upload if needed
-    const fullPrompt = `Analyze this YouTube video: ${youtubeUrl}
+    // Use fileData structure for YouTube URLs (official API format)
+    const contents = [
+      {
+        fileData: {
+          fileUri: youtubeUrl,
+        },
+      },
+      {
+        text: prompt,
+      },
+    ];
 
-${prompt}`;
-
-    const result = await model.generateContent(fullPrompt);
+    const result = await model.generateContent(contents);
 
     const response = result.response.text();
 
