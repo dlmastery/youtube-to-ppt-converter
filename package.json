@@ -1,0 +1,16 @@
+{
+  "name": "youtube-to-ppt",
+  "version": "1.0.0",
+  "description": "Convert YouTube presentations to PowerPoint with AI",
+  "scripts": {
+    "install-all": "cd backend && npm install && cd ../frontend && npm install",
+    "dev": "concurrently \"cd backend && npm run dev\" \"cd frontend && npm run dev\"",
+    "setup": "node setup.js"
+  },
+  "keywords": ["youtube", "powerpoint", "ai", "gemini"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
