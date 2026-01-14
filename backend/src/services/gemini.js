@@ -1,14 +1,8 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-
 /**
- * Analyze YouTube video with Gemini to identify slides
+ * Analyze YouTube video with Gemini to identify slides using direct REST API
  */
 export async function analyzeVideo(youtubeUrl) {
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-
     const prompt = `Sample frames every 3 seconds throughout the video.
 
 For each frame that contains a presentation slide (PowerPoint, Keynote, Google Slides, or similar):
@@ -40,21 +34,41 @@ Important:
     console.log('Sending request to Gemini...');
     console.log('YouTube URL:', youtubeUrl);
 
-    // Use fileData structure for YouTube URLs (official API format)
-    const contents = [
-      {
-        fileData: {
-          fileUri: youtubeUrl,
+    // Make direct REST API call with YouTube URL support (use v1beta for video features)
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`;
+
+    const requestBody = {
+      contents: [
+        {
+          parts: [
+            {
+              file_data: {
+                file_uri: youtubeUrl,
+              },
+            },
+            {
+              text: prompt,
+            },
+          ],
         },
-      },
-      {
-        text: prompt,
-      },
-    ];
+      ],
+    };
 
-    const result = await model.generateContent(contents);
+    const apiResponse = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody),
+    });
 
-    const response = result.response.text();
+    if (!apiResponse.ok) {
+      const errorText = await apiResponse.text();
+      throw new Error(`Gemini API error: ${apiResponse.status} - ${errorText}`);
+    }
+
+    const result = await apiResponse.json();
+    const response = result.candidates[0].content.parts[0].text;
 
     console.log('Gemini response received');
     console.log('Raw response:', response);
